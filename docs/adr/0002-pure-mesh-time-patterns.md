@@ -20,7 +20,7 @@ Each pattern is a **pure function** of mesh time and a few per-phone
 parameters:
 
 ```ts
-drawPattern(id, { ctx, w, h, t, hue, speed, offset })
+drawPattern(id, { ctx, w, h, t, hue, speed, offset });
 // id     ∈ { stripes, gradient, dots, spiral }
 // t      = meshNow()  (median-offset mesh time, same as firefly-walk)
 // hue    ∈ [0, 360)
