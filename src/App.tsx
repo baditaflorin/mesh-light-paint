@@ -3,6 +3,7 @@ import { LightPaint } from "./features/lightpaint/LightPaint";
 import { PATTERN_IDS, type PatternId } from "./features/lightpaint/patterns";
 import { SettingsDrawer } from "./features/settings/SettingsDrawer";
 import { appConfig } from "./shared/config";
+import { InviteShareButton } from "@baditaflorin/mesh-common";
 
 const STORAGE = {
   room: `${appConfig.storagePrefix}:room`,
@@ -55,6 +56,7 @@ export function App() {
     <div className="app-root">
       <LightPaint roomId={roomId} pattern={pattern} hue={hue} speed={speed} offset={offset} />
 
+      <InviteShareButton appName={appConfig.appName} roomId={roomId} />
       <button
         type="button"
         className="settings-fab"
