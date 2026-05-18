@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { MeshShell } from "@baditaflorin/mesh-common";
 import { LightPaint } from "./features/lightpaint/LightPaint";
 import { PATTERN_IDS, type PatternId } from "./features/lightpaint/patterns";
-import { SettingsDrawer } from "./features/settings/SettingsDrawer";
+import { SettingsExtras } from "./features/settings/SettingsExtras";
 import { appConfig } from "./shared/config";
-import { InviteShareButton, MeshBeacon } from "@baditaflorin/mesh-common";
 
 const STORAGE = {
   room: `${appConfig.storagePrefix}:room`,
@@ -34,7 +34,6 @@ export function App() {
   const [hue, setHue] = useState(() => readNumber(STORAGE.hue, 30));
   const [speed, setSpeed] = useState(() => readNumber(STORAGE.speed, 1));
   const [offset, setOffset] = useState(() => readNumber(STORAGE.offset, 0));
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE.room, roomId);
@@ -53,49 +52,24 @@ export function App() {
   }, [offset]);
 
   return (
-    <div className="app-root">
+    <MeshShell
+      config={appConfig}
+      roomId={roomId}
+      onRoomChange={setRoomId}
+      settingsExtras={
+        <SettingsExtras
+          pattern={pattern}
+          onPatternChange={setPattern}
+          hue={hue}
+          onHueChange={setHue}
+          speed={speed}
+          onSpeedChange={setSpeed}
+          offset={offset}
+          onOffsetChange={setOffset}
+        />
+      }
+    >
       <LightPaint roomId={roomId} pattern={pattern} hue={hue} speed={speed} offset={offset} />
-
-      <InviteShareButton appName={appConfig.appName} roomId={roomId} />
-      <MeshBeacon app={appConfig.appName} room={roomId} />
-
-      <button
-        type="button"
-        className="settings-fab"
-        onClick={() => setSettingsOpen(true)}
-        aria-label="Open settings"
-      >
-        ⚙
-      </button>
-
-      <div className="self-ref">
-        <a href={appConfig.repositoryUrl} target="_blank" rel="noreferrer">
-          source
-        </a>
-        <span aria-hidden="true">·</span>
-        <a href={appConfig.paypalUrl} target="_blank" rel="noreferrer">
-          tip ♥
-        </a>
-        <span aria-hidden="true">·</span>
-        <span>
-          v{appConfig.version} · {appConfig.commit}
-        </span>
-      </div>
-
-      <SettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        roomId={roomId}
-        onRoomChange={setRoomId}
-        pattern={pattern}
-        onPatternChange={setPattern}
-        hue={hue}
-        onHueChange={setHue}
-        speed={speed}
-        onSpeedChange={setSpeed}
-        offset={offset}
-        onOffsetChange={setOffset}
-      />
-    </div>
+    </MeshShell>
   );
 }
