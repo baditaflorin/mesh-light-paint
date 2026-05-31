@@ -69,7 +69,21 @@ export function App() {
         />
       }
     >
-      <LightPaint roomId={roomId} pattern={pattern} hue={hue} speed={speed} offset={offset} />
+      <LightPaint
+        roomId={roomId}
+        pattern={pattern}
+        hue={hue}
+        speed={speed}
+        offset={offset}
+        onSharedBrush={(b) => {
+          // A remote peer (or this peer's first-arrival seed) set the room-wide
+          // brush — adopt it so every phone renders the same animation and the
+          // settings UI reflects the shared selection.
+          setPattern(b.pattern);
+          setHue(b.hue);
+          setSpeed(b.speed);
+        }}
+      />
     </MeshShell>
   );
 }

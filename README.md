@@ -18,14 +18,18 @@ rather than four desynced ones.
 
 ## How it works
 
-1. Each phone joins a shared **Yjs document** over **y-webrtc**.
+1. Each phone joins a shared **Yjs document** over **y-webrtc**. The
+   **pattern, hue, and speed** live in a room-wide `Y.Map("brush")`, so when
+   any phone picks a pattern the whole room follows — every phone draws the
+   same animation without anyone manually matching settings.
 2. **Mesh time** comes from the same median-offset clock-sync used in
    `mesh-firefly-walk` (see ADR there). Settles to ~20 ms across a 4-phone
    mesh.
 3. The renderer calls `drawPattern(id, { ctx, w, h, t, hue, speed, offset })`
    every frame. `t = meshNow()`. No state.
-4. Per-phone `offset` shifts the same pattern in phase, so multiple phones
-   don't show identical patterns — they show **complementary** ones.
+4. Per-phone `offset` stays **local** and shifts the shared pattern in phase,
+   so multiple phones don't show identical patterns — they show
+   **complementary** ones for a richer long-exposure composite.
 
 See [ADR 0002 — Pattern functions are pure of mesh-time](docs/adr/0002-pure-mesh-time-patterns.md)
 and [ADR 0003 — Why no in-browser long-exposure](docs/adr/0003-no-in-browser-long-exposure.md).

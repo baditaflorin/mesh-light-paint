@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as Y from "yjs";
 import { createRoomSync } from "../sync/yjsRoom";
 import { createClockSync } from "../sync/clockSync";
 import { maybeFetchTurnCredentials } from "../sync/iceConfig";
-import { drawPattern, type PatternId } from "./patterns";
+import { drawPattern, PATTERN_IDS, type PatternId } from "./patterns";
 
 type Awareness = {
   clientID: number;
@@ -12,24 +13,40 @@ type Awareness = {
   off: (event: string, cb: () => void) => void;
 };
 
+/** The room-wide brush — pattern/hue/speed are shared so every phone in the
+ * room renders the same animation. `offset` stays per-phone (intentional: the
+ * README uses different offsets to enrich the long-exposure composite). */
+type SharedBrush = { pattern: PatternId; hue: number; speed: number };
+
 type Props = {
   roomId: string;
   pattern: PatternId;
   hue: number;
   speed: number;
   offset: number;
+  /** Called when a remote peer changes the shared brush, so the settings UI
+   * (which owns the prop state) reflects the room's current selection. */
+  onSharedBrush: (brush: SharedBrush) => void;
 };
 
-export function LightPaint({ roomId, pattern, hue, speed, offset }: Props) {
+function isPattern(v: unknown): v is PatternId {
+  return typeof v === "string" && (PATTERN_IDS as string[]).includes(v);
+}
+
+export function LightPaint({ roomId, pattern, hue, speed, offset, onSharedBrush }: Props) {
   const [armed, setArmed] = useState(false);
   const [peers, setPeers] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Latest shared brush, read by the render loop. Starts from local props and
+  // is overwritten by whatever the room's Y.Map("brush") holds.
+  const brushRef = useRef<SharedBrush>({ pattern, hue, speed });
 
   const mesh = useMemo(() => {
     if (!armed) return null;
     const room = createRoomSync(roomId);
     const clock = createClockSync(room.provider);
-    return { room, clock };
+    const brush = room.doc.getMap<unknown>("brush");
+    return { room, clock, brush };
   }, [armed, roomId]);
 
   useEffect(() => {
@@ -44,13 +61,70 @@ export function LightPaint({ roomId, pattern, hue, speed, offset }: Props) {
     };
   }, [mesh]);
 
-  // Publish my brush so others can show a "brushes here" debug overlay (and
-  // primarily so peerCount works through awareness).
+  // Sync the room-wide brush both ways:
+  //  - local prop change (user picked a pattern) → write into Y.Map("brush")
+  //  - remote change → adopt it and notify App so the settings UI updates
+  useEffect(() => {
+    if (!mesh) return undefined;
+    const { brush } = mesh;
+
+    const readShared = (): SharedBrush | null => {
+      const p = brush.get("pattern");
+      const h = brush.get("hue");
+      const s = brush.get("speed");
+      if (!isPattern(p) || typeof h !== "number" || typeof s !== "number") return null;
+      return { pattern: p, hue: h, speed: s };
+    };
+
+    // Seed the shared brush from this peer's local selection if the room has
+    // none yet (first arrival), otherwise adopt the room's existing brush.
+    const existing = readShared();
+    if (!existing) {
+      mesh.room.doc.transact(() => {
+        brush.set("pattern", pattern);
+        brush.set("hue", hue);
+        brush.set("speed", speed);
+      });
+      brushRef.current = { pattern, hue, speed };
+    } else {
+      brushRef.current = existing;
+      onSharedBrush(existing);
+    }
+
+    const onChange = () => {
+      const next = readShared();
+      if (!next) return;
+      brushRef.current = next;
+      onSharedBrush(next);
+    };
+    brush.observe(onChange);
+    return () => brush.unobserve(onChange);
+    // Only re-run when the room (re)connects, not on every prop tweak — local
+    // prop writes are handled by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesh]);
+
+  // Push local selection changes into the shared brush (host control: whoever
+  // adjusts a slider sets it for the whole room). Skips no-op writes so a
+  // remote update we just adopted doesn't echo back.
+  useEffect(() => {
+    if (!mesh) return;
+    const cur = brushRef.current;
+    if (cur.pattern === pattern && cur.hue === hue && cur.speed === speed) return;
+    brushRef.current = { pattern, hue, speed };
+    mesh.room.doc.transact(() => {
+      mesh.brush.set("pattern", pattern);
+      mesh.brush.set("hue", hue);
+      mesh.brush.set("speed", speed);
+    });
+  }, [mesh, pattern, hue, speed]);
+
+  // Awareness publish — keeps peerCount live and lets others see who's brushing.
   useEffect(() => {
     if (!mesh?.room.provider) return undefined;
     const awareness = (mesh.room.provider as unknown as { awareness: Awareness }).awareness;
     const publish = () => {
-      awareness.setLocalStateField("brush", { pattern, hue, speed, offset, ts: Date.now() });
+      awareness.setLocalStateField("brush", { offset, ts: Date.now() });
     };
     publish();
     const pub = setInterval(publish, 1500);
@@ -61,7 +135,7 @@ export function LightPaint({ roomId, pattern, hue, speed, offset }: Props) {
       clearInterval(pub);
       awareness.off("change", onChange);
     };
-  }, [mesh, pattern, hue, speed, offset]);
+  }, [mesh, offset]);
 
   // Render loop
   useEffect(() => {
@@ -126,8 +200,13 @@ export function LightPaint({ roomId, pattern, hue, speed, offset }: Props) {
   return (
     <div className="lightpaint-stage">
       <canvas ref={canvasRef} className="lightpaint-canvas" />
-      <div className="lightpaint-hud">
-        <span>{pattern}</span>
+      <div
+        className="lightpaint-hud"
+        data-pattern={pattern}
+        data-hue={hue}
+        data-speed={speed.toFixed(2)}
+      >
+        <span className="lightpaint-hud-pattern">{pattern}</span>
         <span aria-hidden="true">·</span>
         <span>hue {hue}°</span>
         <span aria-hidden="true">·</span>
