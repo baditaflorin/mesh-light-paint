@@ -187,7 +187,7 @@ export function LightPaint({ roomId, pattern, hue, speed, offset, onSharedBrush 
           patterns are driven by mesh time, so trails line up coherently in the photo.
         </p>
         <button type="button" className="lightpaint-arm-button" onClick={() => setArmed(true)}>
-          Connect to brush
+          Start light painting
         </button>
         <p className="lightpaint-hint">
           Pattern <code>{pattern}</code> · hue {hue}° · speed {speed.toFixed(2)} · offset{" "}
@@ -212,9 +212,11 @@ export function LightPaint({ roomId, pattern, hue, speed, offset, onSharedBrush 
         <span aria-hidden="true">·</span>
         <span>×{speed.toFixed(2)}</span>
         <span aria-hidden="true">·</span>
-        <span>
-          {peers + 1} brush{peers + 1 === 1 ? "" : "es"}
-        </span>
+        {peers === 0 ? (
+          <span className="lightpaint-hud-solo">solo — open on another phone to sync</span>
+        ) : (
+          <span>{peers + 1} brushes synced</span>
+        )}
       </div>
     </div>
   );

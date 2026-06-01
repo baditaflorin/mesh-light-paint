@@ -30,8 +30,8 @@ test("peer A's pattern + speed selection propagates to peer B", async ({ browser
   });
   try {
     // Both peers connect to the mesh (the arm screen).
-    await a.getByRole("button", { name: "Connect to brush" }).click();
-    await b.getByRole("button", { name: "Connect to brush" }).click();
+    await a.getByRole("button", { name: "Start light painting" }).click();
+    await b.getByRole("button", { name: "Start light painting" }).click();
 
     // Both start on the default "stripes" pattern.
     await expect(a.locator(".lightpaint-hud")).toHaveAttribute("data-pattern", "stripes");
@@ -61,6 +61,21 @@ test("peer A's pattern + speed selection propagates to peer B", async ({ browser
     const aSpeed = await a.locator(".lightpaint-hud").getAttribute("data-speed");
     expect(aSpeed).not.toBe("1.00");
     await expect(b.locator(".lightpaint-hud")).toHaveAttribute("data-speed", aSpeed ?? "");
+
+    // Hue is the third part of the shared brush — without it the trails line up
+    // in shape/speed but clash in colour, so confirm it crosses too. Drive it
+    // from peer B this time to prove the brush is shared in both directions.
+    const bDrawer = b.locator(".mesh-settings-drawer, .settings-drawer");
+    if ((await bDrawer.count()) === 0) {
+      await b.getByLabel("Open settings").click();
+    }
+    const bHueSlider = b.getByRole("slider").nth(0); // hue=0, speed=1, offset=2
+    await bHueSlider.focus();
+    for (let i = 0; i < 5; i++) await bHueSlider.press("ArrowRight");
+
+    const bHue = await b.locator(".lightpaint-hud").getAttribute("data-hue");
+    expect(bHue).not.toBe("30"); // moved off the default hue
+    await expect(a.locator(".lightpaint-hud")).toHaveAttribute("data-hue", bHue ?? "");
   } finally {
     await cleanup();
   }

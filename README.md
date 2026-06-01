@@ -9,12 +9,17 @@
 
 **Live:** https://baditaflorin.github.io/mesh-light-paint/
 
-Open the link on every phone. Pick a pattern (stripes / gradient / dots /
-spiral). Set up a long exposure on your real camera (tripod, 4–10 s, bulb or
-night mode). Wave the phones across the frame. Because every pattern is a
-pure function of mesh time, the trails align: four phones running "stripes"
-at the same speed produce a single continuous moving wave across the photo
-rather than four desynced ones.
+**Try it in 10 seconds:** open the link in two browser tabs, tap **Start
+light painting** in both, then open ⚙ in one tab and pick a pattern — the
+other tab instantly switches to the same pattern, hue, and speed. That shared
+brush is the whole point.
+
+For the real photo: open the link on every phone, pick a pattern (stripes /
+gradient / dots / spiral), set up a long exposure on your camera (tripod,
+4–10 s, bulb or night mode), and wave the phones across the frame. Because
+every pattern is a pure function of mesh time, the trails align: four phones
+running "stripes" at the same speed produce a single continuous moving wave
+across the photo rather than four desynced ones.
 
 ## How it works
 
